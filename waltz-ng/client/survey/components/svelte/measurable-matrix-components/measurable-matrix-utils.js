@@ -69,6 +69,28 @@ export function buildHierarchyGroups(entries = []) {
 }
 
 
+/**
+ * Given one header level's groups (from buildHierarchyGroups) and a visible leaf-index window
+ * [startIndex, endIndex], returns only the groups intersecting that window, with startIndex/endIndex/span
+ * clipped to it - so a group spanning e.g. columns 10-25 renders with colspan=6 when only 15-20 are
+ * currently rendered (column virtualization).
+ */
+export function clipGroupsToWindow(groups = [], startIndex, endIndex) {
+    return groups
+        .filter(g => g.endIndex >= startIndex && g.startIndex <= endIndex)
+        .map(g => {
+            const clippedStart = Math.max(g.startIndex, startIndex);
+            const clippedEnd = Math.min(g.endIndex, endIndex);
+            return {
+                ...g,
+                startIndex: clippedStart,
+                endIndex: clippedEnd,
+                span: clippedEnd - clippedStart + 1
+            };
+        });
+}
+
+
 export function isFullyChecked(checkedCells, rowIds = [], colIds = []) {
     return rowIds.length > 0
         && colIds.length > 0
