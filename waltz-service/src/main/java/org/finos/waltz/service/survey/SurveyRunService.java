@@ -35,8 +35,10 @@ import org.finos.waltz.model.person.Person;
 import org.finos.waltz.model.survey.*;
 import org.finos.waltz.service.changelog.ChangeLogService;
 import org.finos.waltz.service.involvement_group.InvolvementGroupService;
+import org.jooq.DSLContext;
 import org.jooq.Record1;
 import org.jooq.Select;
+import org.jooq.impl.DSL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -71,6 +73,7 @@ public class SurveyRunService {
     private final SurveyTemplateDao surveyTemplateDao;
     private final SurveyQuestionResponseDao surveyQuestionResponseDao;
     private final InvolvementGroupService involvementGroupService;
+    private final DSLContext dsl;
 
     private final GenericSelectorFactory genericSelectorFactory = new GenericSelectorFactory();
     private final SurveyInstanceIdSelectorFactory surveyInstanceIdSelectorFactory = new SurveyInstanceIdSelectorFactory();
@@ -86,7 +89,8 @@ public class SurveyRunService {
                             SurveyRunDao surveyRunDao,
                             SurveyTemplateDao surveyTemplateDao,
                             SurveyQuestionResponseDao surveyQuestionResponseDao,
-                            InvolvementGroupService involvementGroupService) {
+                            InvolvementGroupService involvementGroupService,
+                            DSLContext dsl) {
 
         checkNotNull(changeLogService, "changeLogService cannot be null");
         checkNotNull(involvementDao, "involvementDao cannot be null");
@@ -98,6 +102,7 @@ public class SurveyRunService {
         checkNotNull(surveyTemplateDao, "surveyTemplateDao cannot be null");
         checkNotNull(surveyQuestionResponseDao, "surveyQuestionResponseDao cannot be null");
         checkNotNull(involvementGroupService, "involvementGroupService cannot be null");
+        checkNotNull(dsl, "dsl cannot be null");
 
         this.changeLogService = changeLogService;
         this.involvementDao = involvementDao;
@@ -109,6 +114,7 @@ public class SurveyRunService {
         this.surveyTemplateDao = surveyTemplateDao;
         this.surveyQuestionResponseDao = surveyQuestionResponseDao;
         this.involvementGroupService = involvementGroupService;
+        this.dsl = dsl;
     }
 
 
@@ -361,10 +367,12 @@ public class SurveyRunService {
         checkNotNull(surveyTemplate, "surveyTemplate " + surveyRun.surveyTemplateId() + " not found");
 
         GenericSelector genericSelector = genericSelectorFactory.applyForKind(surveyTemplate.targetEntityKind(), surveyRun.selectionOptions());
-        Map<EntityReference, List<Person>> entityRefToPeople = involvementDao.findPeopleByEntitySelectorAndInvolvement(
-                surveyTemplate.targetEntityKind(),
-                genericSelector.selector(),
+        Map<EntityReference, List<Person>> entityRefToPeople = resolveEntityToPeople(
+                genericSelector,
+                surveyRun,
                 surveyRun.involvementKindIds());
+
+        EntityReference qualifierEntity = determineQualifierEntity(surveyRun, surveyTemplate);
 
         return entityRefToPeople.entrySet()
                 .stream()
@@ -372,6 +380,7 @@ public class SurveyRunService {
                         .map(p -> ImmutableSurveyInstanceRecipient.builder()
                                 .surveyInstance(ImmutableSurveyInstance.builder()
                                         .surveyEntity(e.getKey())
+                                        .qualifierEntity(qualifierEntity)
                                         .surveyRunId(surveyRun.id().get())
                                         .status(SurveyInstanceStatus.NOT_STARTED)
                                         .dueDate(command.dueDate())
@@ -386,6 +395,58 @@ public class SurveyRunService {
     }
 
 
+    /**
+     * When a survey run's selector entity is a different kind to the survey template's target entity
+     * (e.g. selecting Applications rated under a Measurable), the selector entity is recorded as the
+     * qualifier on each generated instance so the instance retains context of why/for-what it was issued.
+     */
+    private EntityReference determineQualifierEntity(SurveyRun surveyRun, SurveyTemplate surveyTemplate) {
+        EntityReference selectorRef = surveyRun.selectionOptions().entityReference();
+        return selectorRef.kind() == surveyTemplate.targetEntityKind()
+                ? null
+                : selectorRef;
+    }
+
+
+    /**
+     * Resolves the people who should be recipients/owners for a survey run's generated instances.
+     * By default (TARGET_ENTITY), people are resolved via involvements recorded directly against each
+     * target entity (e.g. each Application). When SELECTOR_ENTITY, people are instead resolved via
+     * involvements recorded against the run's selector entity (e.g. a Measurable used to pick the target
+     * population) and that same shared set of people is applied to every resolved target entity.
+     */
+    private Map<EntityReference, List<Person>> resolveEntityToPeople(GenericSelector genericSelector,
+                                                                      SurveyRun surveyRun,
+                                                                      Set<Long> involvementKindIds) {
+        if (surveyRun.involvementResolutionKind() == SurveyInvolvementResolutionKind.SELECTOR_ENTITY) {
+            EntityReference selectorRef = surveyRun.selectionOptions().entityReference();
+
+            List<Person> sharedPeople = involvementDao.findPeopleByEntitySelectorAndInvolvement(
+                            selectorRef.kind(),
+                            DSL.select(DSL.val(selectorRef.id())),
+                            involvementKindIds)
+                    .getOrDefault(selectorRef, emptyList());
+
+            if (isEmpty(sharedPeople)) {
+                return Collections.emptyMap();
+            }
+
+            List<EntityReference> targetRefs = dsl.fetch(genericSelector.selector())
+                    .map(r -> EntityReference.mkRef(genericSelector.kind(), r.value1()));
+
+            return targetRefs
+                    .stream()
+                    .distinct()
+                    .collect(Collectors.toMap(ref -> ref, ref -> sharedPeople));
+        } else {
+            return involvementDao.findPeopleByEntitySelectorAndInvolvement(
+                    genericSelector.kind(),
+                    genericSelector.selector(),
+                    involvementKindIds);
+        }
+    }
+
+
     public List<SurveyInstanceOwner> generateSurveyInstanceOwners(InstancesAndRecipientsCreateCommand command) {
         SurveyRun surveyRun = surveyRunDao.getById(command.surveyRunId());
         checkNotNull(surveyRun, "surveyRun " + command.surveyRunId() + " not found");
@@ -394,10 +455,12 @@ public class SurveyRunService {
         checkNotNull(surveyTemplate, "surveyTemplate " + surveyRun.surveyTemplateId() + " not found");
 
         GenericSelector genericSelector = genericSelectorFactory.applyForKind(surveyTemplate.targetEntityKind(), surveyRun.selectionOptions());
-        Map<EntityReference, List<Person>> entityRefToPeople = involvementDao.findPeopleByEntitySelectorAndInvolvement(
-                surveyTemplate.targetEntityKind(),
-                genericSelector.selector(),
+        Map<EntityReference, List<Person>> entityRefToPeople = resolveEntityToPeople(
+                genericSelector,
+                surveyRun,
                 surveyRun.ownerInvKindIds());
+
+        EntityReference qualifierEntity = determineQualifierEntity(surveyRun, surveyTemplate);
 
         return entityRefToPeople.entrySet()
                 .stream()
@@ -405,6 +468,7 @@ public class SurveyRunService {
                         .map(p -> ImmutableSurveyInstanceOwner.builder()
                                 .surveyInstance(ImmutableSurveyInstance.builder()
                                         .surveyEntity(e.getKey())
+                                        .qualifierEntity(qualifierEntity)
                                         .surveyRunId(command.surveyRunId())
                                         .status(SurveyInstanceStatus.NOT_STARTED)
                                         .dueDate(command.dueDate())
@@ -483,6 +547,7 @@ public class SurveyRunService {
                 .create(ImmutableSurveyInstanceCreateCommand.builder()
                         .surveyRunId(surveyInstance.surveyRunId())
                         .entityReference(surveyInstance.surveyEntity())
+                        .qualifierEntity(surveyInstance.qualifierEntity())
                         .status(surveyInstance.status())
                         .dueDate(surveyInstance.dueDate())
                         .approvalDueDate(surveyInstance.approvalDueDate())

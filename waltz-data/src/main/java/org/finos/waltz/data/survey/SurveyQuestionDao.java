@@ -57,6 +57,10 @@ public class SurveyQuestionDao {
                 .ofNullable(record.getEntityQualifierKind())
                 .map(k -> mkRef(EntityKind.valueOf(k), record.getEntityQualifierId()));
 
+        Optional<EntityReference> qualifierRef2 = Optional
+                .ofNullable(record.getEntityQualifier_2Kind())
+                .map(k -> mkRef(EntityKind.valueOf(k), record.getEntityQualifier_2Id()));
+
         return ImmutableSurveyQuestion.builder()
                 .id(record.getId())
                 .surveyTemplateId(record.getSurveyTemplateId())
@@ -70,6 +74,7 @@ public class SurveyQuestionDao {
                 .externalId(Optional.ofNullable(record.getExternalId()))
                 .inclusionPredicate(Optional.ofNullable(record.getInclusionPredicate()))
                 .qualifierEntity(qualifierRef)
+                .qualifierEntity2(qualifierRef2)
                 .label(Optional.ofNullable(record.getLabel()))
                 .parentExternalId(Optional.ofNullable(record.getParentExternalId()))
                 .build();
@@ -99,6 +104,11 @@ public class SurveyQuestionDao {
         question.qualifierEntity().ifPresent(ref -> {
             record.setEntityQualifierKind(ref.kind().name());
             record.setEntityQualifierId(ref.id());
+        });
+
+        question.qualifierEntity2().ifPresent(ref -> {
+            record.setEntityQualifier_2Kind(ref.kind().name());
+            record.setEntityQualifier_2Id(ref.id());
         });
 
         return record;

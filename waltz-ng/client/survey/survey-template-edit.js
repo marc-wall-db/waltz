@@ -154,16 +154,28 @@ function controller($q,
     };
 
     vm.onChangeQFieldType = () => {
-        if(vm.selectedQuestionInfo.question.fieldType !== 'MEASURABLE_MULTI_SELECT') {
+        const fieldType = vm.selectedQuestionInfo.question.fieldType;
+        if(fieldType !== 'MEASURABLE_MULTI_SELECT' && fieldType !== 'MEASURABLE_MATRIX') {
             delete vm.selectedQuestionInfo.question.qualifierEntity;
+        }
+        if(fieldType !== 'MEASURABLE_MATRIX') {
+            delete vm.selectedQuestionInfo.question.qualifierEntity2;
         }
     }
 
-    vm.createQuestion = (qi) => {
-
+    const applyMeasurableCategoryQualifiers = (qi) => {
         if(qi.question.fieldType === "MEASURABLE_MULTI_SELECT"){
             qi.question.qualifierEntity.kind = "MEASURABLE_CATEGORY";
         }
+        if(qi.question.fieldType === "MEASURABLE_MATRIX"){
+            qi.question.qualifierEntity.kind = "MEASURABLE_CATEGORY";
+            qi.question.qualifierEntity2.kind = "MEASURABLE_CATEGORY";
+        }
+    };
+
+    vm.createQuestion = (qi) => {
+
+        applyMeasurableCategoryQualifiers(qi);
 
         serviceBroker
             .execute(CORE_API.SurveyQuestionStore.create, [qi])
@@ -176,9 +188,7 @@ function controller($q,
 
     vm.updateQuestion = (qi) => {
 
-        if(qi.question.fieldType === "MEASURABLE_MULTI_SELECT"){
-            qi.question.qualifierEntity.kind = "MEASURABLE_CATEGORY";
-        }
+        applyMeasurableCategoryQualifiers(qi);
 
         serviceBroker
             .execute(CORE_API.SurveyQuestionStore.update, [qi])

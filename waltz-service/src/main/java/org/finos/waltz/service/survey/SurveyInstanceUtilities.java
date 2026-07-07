@@ -34,6 +34,7 @@ public class SurveyInstanceUtilities {
             case LEGAL_ENTITY:
                 return resp.entityListResponse();
             case ARC:
+            case MEASURABLE_MATRIX:
                 return resp.jsonResponse();
             default:
                 return Optional.empty();

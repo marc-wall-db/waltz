@@ -66,7 +66,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -167,32 +166,6 @@ public class SurveyInstanceDao {
                 .build();
     };
 
-    private static final Function<SurveyInstance, SurveyInstanceRecord> TO_RECORD_MAPPER = d -> {
-
-        SurveyInstanceRecord r = new SurveyInstanceRecord();
-
-        d.id().ifPresent(r::setId);
-        r.setSurveyRunId(d.surveyRunId());
-        r.setEntityKind(d.surveyEntity().kind().name());
-        r.setEntityId(d.surveyEntity().id());
-        r.setStatus(d.status().name());
-        r.setSubmittedAt(Timestamp.valueOf(d.submittedAt()));
-        r.setSubmittedBy(d.submittedBy());
-        r.setDueDate(toSqlDate(d.dueDate()));
-        r.setOriginalInstanceId(d.originalInstanceId());
-        r.setApprovedAt(Timestamp.valueOf(d.approvedAt()));
-        r.setApprovedBy(d.approvedBy());
-        r.setOwningRole(d.owningRole());
-        r.setEntityQualifierId(d.qualifierEntity().id());
-        r.setEntityQualifierKind(d.qualifierEntity().kind().name());
-        r.setName(d.name());
-        r.setApprovalDueDate(toSqlDate(d.approvalDueDate()));
-        r.setIssuedOn(toSqlDate(d.issuedOn()));
-        r.changed(SURVEY_INSTANCE.ID, false);
-
-        return r;
-    };
-
     private final DSLContext dsl;
 
 
@@ -279,6 +252,11 @@ public class SurveyInstanceDao {
         record.setOwningRole(command.owningRole());
         record.setName(command.name());
         record.setIssuedOn(toSqlDate(command.issuedOn()));
+        ofNullable(command.qualifierEntity())
+                .ifPresent(ref -> {
+                    record.setEntityQualifierKind(ref.kind().name());
+                    record.setEntityQualifierId(ref.id());
+                });
 
         record.store();
         return record.getId();

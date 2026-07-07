@@ -52,4 +52,9 @@ public abstract class SurveyRun implements IdProvider, NameProvider, Description
     public boolean isDefault() {
         return false;
     }
+
+    @Value.Default
+    public SurveyInvolvementResolutionKind involvementResolutionKind() {
+        return SurveyInvolvementResolutionKind.TARGET_ENTITY;
+    }
 }

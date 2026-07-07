@@ -25,6 +25,7 @@ import org.finos.waltz.web.DatumRoute;
 import org.finos.waltz.web.ListRoute;
 import org.finos.waltz.web.endpoints.Endpoint;
 import org.finos.waltz.web.json.SurveyQuestionInfo;
+import org.finos.waltz.model.survey.SurveyMeasurableMatrixData;
 import org.finos.waltz.model.survey.SurveyQuestion;
 import org.finos.waltz.model.survey.SurveyQuestionDropdownEntry;
 import org.finos.waltz.model.survey.SurveyQuestionFieldType;
@@ -72,6 +73,10 @@ public class SurveyQuestionEndpoint implements Endpoint {
         ListRoute<SurveyQuestion> findQuestionsForTemplate = (req, res) -> surveyQuestionService.findForSurveyTemplate(getId(req));
         ListRoute<SurveyQuestionDropdownEntry> findDropdownEntriesForTemplate = (req, res) -> surveyQuestionDropdownEntryService.findForSurveyTemplate(getId(req));
 
+        DatumRoute<SurveyMeasurableMatrixData> findMeasurableMatrixDataRoute = (req, res) -> surveyQuestionService.getMeasurableMatrixData(
+                getLong(req, "instanceId"),
+                getLong(req, "questionId"));
+
         DatumRoute<Long> createRoute =
                 (req, res) -> {
                     ensureUserHasAdminRights(req);
@@ -101,6 +106,8 @@ public class SurveyQuestionEndpoint implements Endpoint {
 
         getForList(mkPath(BASE_URL, "questions", "template", ":id"), findQuestionsForTemplate);
         getForList(mkPath(BASE_URL, "dropdown-entries", "template", ":id"), findDropdownEntriesForTemplate);
+
+        getForDatum(mkPath(BASE_URL, "measurable-matrix-data", "instance", ":instanceId", "question", ":questionId"), findMeasurableMatrixDataRoute);
 
         postForDatum(BASE_URL, createRoute);
         putForDatum(BASE_URL, updateRoute);

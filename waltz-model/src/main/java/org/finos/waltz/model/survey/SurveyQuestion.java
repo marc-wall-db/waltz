@@ -45,6 +45,13 @@ public abstract class SurveyQuestion implements
 
     public abstract Optional<EntityReference> qualifierEntity();
 
+    /**
+     * A second qualifier entity, used by field types that need two axes of configuration
+     * (e.g. MEASURABLE_MATRIX, where qualifierEntity is the row category and qualifierEntity2
+     * is the column category - both MEASURABLE_CATEGORY entity references).
+     */
+    public abstract Optional<EntityReference> qualifierEntity2();
+
     @Value.Default
     public Integer position() {
         return 1;

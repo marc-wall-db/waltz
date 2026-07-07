@@ -38,6 +38,9 @@ public abstract class SurveyInstanceCreateCommand implements Command {
 
     public abstract EntityReference entityReference();
 
+    @Nullable
+    public abstract EntityReference qualifierEntity();
+
     public abstract LocalDate dueDate();
 
     public abstract LocalDate approvalDueDate();

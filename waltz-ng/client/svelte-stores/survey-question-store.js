@@ -31,10 +31,18 @@ export function mkSurveyQuestionStore() {
         return remote.fetchViewList("GET", `api/survey-question/dropdown-entries/template/${id}`, [], {force});
     };
 
+    const getMeasurableMatrixData = (instanceId, questionId, force = false) => remote
+        .fetchViewDatum(
+            "GET",
+            `api/survey-question/measurable-matrix-data/instance/${instanceId}/question/${questionId}`,
+            null,
+            {force});
+
     return {
         findQuestionsForInstance,
         findQuestionsForTemplate,
-        findDropdownEntriesForTemplate
+        findDropdownEntriesForTemplate,
+        getMeasurableMatrixData
     };
 }
 

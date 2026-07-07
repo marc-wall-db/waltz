@@ -45,4 +45,9 @@ public abstract class SurveyRunCreateCommand implements Command, NameProvider, D
     public abstract String contactEmail();
     public abstract Set<Long> ownerInvKindIds();
 
+    @Value.Default
+    public SurveyInvolvementResolutionKind involvementResolutionKind() {
+        return SurveyInvolvementResolutionKind.TARGET_ENTITY;
+    }
+
 }

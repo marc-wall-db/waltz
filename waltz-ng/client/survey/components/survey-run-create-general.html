@@ -193,6 +193,28 @@
         </div>
 
         <div class="form-group">
+            <label class="col-sm-2 control-label">
+                Recipients/Approvers based on <span class="text-danger">*</span>
+            </label>
+            <div class="col-sm-10">
+                <label ng-repeat="kind in $ctrl.involvementResolutionKinds">
+                    <input name="involvementResolutionKind"
+                           type="radio"
+                           ng-model="$ctrl.surveyRun.involvementResolutionKind"
+                           ng-change="$ctrl.onInvolvementResolutionKindChange()"
+                           value="{{kind.value}}" />
+                    <span ng-bind="kind.name"></span>
+                    &nbsp;
+                </label>
+
+                <div class='small text-muted'>
+                    <strong>Target entity</strong> - involvement recorded directly against each subject entity (e.g. the Application), the default.<br/>
+                    <strong>Selector entity</strong> - involvement recorded against the selector entity itself (e.g. a Product), shared across every subject entity issued under it.
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
             <label for="involvementKinds"
                    class="col-sm-2 control-label">
                 Recipient Involvement Kind/s <span class="text-danger">*</span>

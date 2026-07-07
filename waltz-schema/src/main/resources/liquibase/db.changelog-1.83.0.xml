@@ -43,4 +43,29 @@
                               columnDataType="${clob.type}"/>
         <comment>Update proposed_flow table to change flow_def to TEXT and add not-null constraint</comment>
     </changeSet>
+
+    <changeSet id="20260707-survey-measurable-matrix-1" author="claude">
+        <addColumn tableName="survey_run">
+            <column name="involvement_resolution_kind"
+                    type="${enum.type}"
+                    defaultValue="TARGET_ENTITY">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <comment>Allows survey run recipients/owners to be resolved via involvement on either the target entity (default, existing behaviour) or the run's selector entity (e.g. a Measurable used to pick a population of Applications)</comment>
+    </changeSet>
+
+    <changeSet id="20260707-survey-measurable-matrix-2" author="claude">
+        <addColumn tableName="survey_question">
+            <column name="entity_qualifier_2_id"
+                    type="${id.type}">
+                <constraints nullable="true"/>
+            </column>
+            <column name="entity_qualifier_2_kind"
+                    type="${enum.type}">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+        <comment>Second qualifier entity slot, for question field types needing two axes of configuration (e.g. MEASURABLE_MATRIX row/column measurable categories)</comment>
+    </changeSet>
 </databaseChangeLog>

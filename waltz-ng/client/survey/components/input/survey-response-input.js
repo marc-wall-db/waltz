@@ -1,6 +1,7 @@
 import template from "./survey-response-input.html"
 import {initialiseData} from "../../../common";
 import ARCSurveyComponent from "../svelte/arc-survey-components/ARCSurveyComponent.svelte";
+import MeasurableMatrixSurveyComponent from "../svelte/measurable-matrix-components/MeasurableMatrixSurveyComponent.svelte";
 
 const bindings = {
     question: "<",
@@ -21,6 +22,7 @@ const bindings = {
 
 const initialState = {
     ARCSurveyComponent,
+    MeasurableMatrixSurveyComponent,
 };
 
 

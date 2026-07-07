@@ -25,6 +25,7 @@ import org.finos.waltz.model.EntityReference;
 import org.finos.waltz.model.HierarchyQueryScope;
 import org.finos.waltz.model.IdSelectionOptions;
 import org.finos.waltz.model.survey.ImmutableSurveyRun;
+import org.finos.waltz.model.survey.SurveyInvolvementResolutionKind;
 import org.finos.waltz.model.survey.SurveyIssuanceKind;
 import org.finos.waltz.model.survey.SurveyRun;
 import org.finos.waltz.model.survey.SurveyRunChangeCommand;
@@ -89,6 +90,7 @@ public class SurveyRunDao {
                 .isDefault(record.getIsDefault())
                 .involvementKindIds(fromCollection(recipients))
                 .ownerInvKindIds(fromCollection(owners))
+                .involvementResolutionKind(SurveyInvolvementResolutionKind.valueOf(record.getInvolvementResolutionKind()))
                 .build();
     }
 
@@ -154,6 +156,7 @@ public class SurveyRunDao {
         record.setContactEmail(command.contactEmail());
         record.setStatus(SurveyRunStatus.DRAFT.name());
         record.setOwnerInvolvementGroupId(ownerInvGroupId.orElse(null));
+        record.setInvolvementResolutionKind(command.involvementResolutionKind().name());
 
         record.store();
         return record.getId();
@@ -184,6 +187,7 @@ public class SurveyRunDao {
                 .set(SURVEY_RUN.APPROVAL_DUE_DATE, command.approvalDueDate().map(Date::valueOf).orElse(null))
                 .set(SURVEY_RUN.ISSUANCE_KIND, command.issuanceKind().name())
                 .set(SURVEY_RUN.CONTACT_EMAIL, command.contactEmail().orElse(null))
+                .set(SURVEY_RUN.INVOLVEMENT_RESOLUTION_KIND, command.involvementResolutionKind().name())
                 .where(SURVEY_RUN.ID.eq(surveyRunId))
                 .execute();
     }

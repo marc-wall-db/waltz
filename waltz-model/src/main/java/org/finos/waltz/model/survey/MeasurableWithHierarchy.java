@@ -18,20 +18,22 @@
 
 package org.finos.waltz.model.survey;
 
-public enum SurveyQuestionFieldType {
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.finos.waltz.model.EntityReference;
+import org.immutables.value.Value;
 
-    APPLICATION,
-    BOOLEAN,
-    DATE,
-    DROPDOWN,
-    DROPDOWN_MULTI_SELECT,
-    STRING_LIST,
-    LEGAL_ENTITY,
-    MEASURABLE_MULTI_SELECT,
-    NUMBER,
-    PERSON,
-    TEXT,
-    TEXTAREA,
-    ARC,
-    MEASURABLE_MATRIX
+import java.util.List;
+
+/**
+ * A measurable together with its full ancestor path (root first, this measurable last),
+ * so hierarchical UI (e.g. the MEASURABLE_MATRIX question type) can render grouped headers
+ * without a further round-trip to resolve ancestors.
+ */
+@Value.Immutable
+@JsonSerialize(as = ImmutableMeasurableWithHierarchy.class)
+public interface MeasurableWithHierarchy {
+
+    EntityReference measurable();
+
+    List<EntityReference> hierarchy();
 }

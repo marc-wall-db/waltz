@@ -1,6 +1,6 @@
 /*
  * Waltz - Enterprise Architecture
- * Copyright (C) 2016 - 2026 Waltz open source project
+ * Copyright (C) 2016, 2017, 2018, 2019 Waltz open source project
  * See README.md for more information
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,15 +16,11 @@
  *
  */
 
-/*
-  This is a map of all the custom field types that we have or may have in waltz
+package org.finos.waltz.model.survey;
 
-  Can be used to configure custom fields that may be required; apart from the available
-  fields that waltz currently provides.
 
-  These fieldTypes are custom in the sense that they have their own 'custom rendering.'
- */
-export const surveyCustomFieldTypes = {
-    ARC: "ARC", // BETA field type
-    MEASURABLE_MATRIX: "MEASURABLE_MATRIX", // BETA field type
-};
+public enum SurveyInvolvementResolutionKind {
+
+    TARGET_ENTITY,
+    SELECTOR_ENTITY
+}

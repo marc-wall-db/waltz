@@ -107,5 +107,12 @@ export const surveyQuestionFieldType = {
         icon: null,
         description: null,
         position: 80
+    },
+    MEASURABLE_MATRIX: {
+        key: "MEASURABLE_MATRIX",
+        name: "Measurable Matrix (Beta)",
+        icon: null,
+        description: "A matrix of two measurable categories (rows/columns), restricted to measurables already rated against the survey subject",
+        position: 85
     }
 };

@@ -162,6 +162,15 @@ public class MeasurableDao implements FindEntityReferencesByIdSelector {
     }
 
 
+    public Set<Measurable> findByIds(Set<Long> ids) {
+        return dsl
+                .select(MEASURABLE.fields())
+                .from(MEASURABLE)
+                .where(MEASURABLE.ID.in(ids))
+                .fetchSet(TO_DOMAIN_MAPPER);
+    }
+
+
     public Collection<Measurable> findByExternalId(String extId) {
         return dsl
                 .select(MEASURABLE.fields())

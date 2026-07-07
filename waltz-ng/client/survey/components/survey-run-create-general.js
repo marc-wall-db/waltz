@@ -58,10 +58,18 @@ const initialState = {
         "MEASURABLE": [exactScope, childrenScope]
     },
     availableInvolvementKinds: [],
+    involvementResolutionKinds: [{
+        value: "TARGET_ENTITY",
+        name: "Target entity"
+    },{
+        value: "SELECTOR_ENTITY",
+        name: "Selector entity"
+    }],
     surveyRun: {
         selectorEntity: null,
         dueDate: null,
-        approvalDueDate: null
+        approvalDueDate: null,
+        involvementResolutionKind: "TARGET_ENTITY"
     },
     surveyInstance: {
         dueDate: null,
@@ -96,16 +104,27 @@ function mkAllowedEntityKinds(entityKind) {
 function controller(appGroupStore, involvementKindStore, serviceBroker) {
     const vm = initialiseData(this, initialState);
 
+    let involvementKinds = [];
+
+    const refreshAvailableInvolvementKinds = () => {
+        const subjectKind = vm.surveyRun.involvementResolutionKind === "SELECTOR_ENTITY"
+            ? vm.surveyRun.selectorEntityKind
+            : vm.surveyTemplate.targetEntityKind;
+
+        vm.availableInvolvementKinds = _.filter(
+            involvementKinds,
+            d => d.subjectKind === subjectKind);
+    };
+
     vm.$onChanges = () => {
         if (vm.surveyTemplate) {
             vm.allowedEntityKinds = mkAllowedEntityKinds(vm.surveyTemplate.targetEntityKind);
             involvementKindStore
                 .findAll()
-                .then(involvementKinds => vm.availableInvolvementKinds = _
-                    .filter(
-                        involvementKinds,
-                        d => d.subjectKind === vm.surveyTemplate.targetEntityKind));
-
+                .then(fetchedInvolvementKinds => {
+                    involvementKinds = fetchedInvolvementKinds;
+                    refreshAvailableInvolvementKinds();
+                });
         }
     };
 
@@ -122,6 +141,13 @@ function controller(appGroupStore, involvementKindStore, serviceBroker) {
 
     vm.onSelectorEntityKindChange = () => {
         vm.surveyRun.selectorEntity = null;
+        refreshAvailableInvolvementKinds();
+    };
+
+    vm.onInvolvementResolutionKindChange = () => {
+        vm.surveyRun.involvementKinds = null;
+        vm.surveyRun.ownerInvolvementKinds = null;
+        refreshAvailableInvolvementKinds();
     };
 
     vm.onSelectorEntitySelect = (entity) => {

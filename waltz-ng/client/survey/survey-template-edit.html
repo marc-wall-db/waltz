@@ -245,6 +245,30 @@
                         </div>
 
                     </div>
+                    <div ng-if="ctrl.selectedQuestionInfo.question.fieldType === 'MEASURABLE_MATRIX'"
+                         class="col-sm-7 col-sm-offset-2">
+                        <div style="display: block; background-color: #F8F9F9; margin-top:10px; padding: 1em; border-radius: 2px; border: 1px solid #eee">
+                            <label for="qRowCategoryId">Row category</label>
+                            <select id="qRowCategoryId"
+                                required
+                                class="form-control"
+                                ng-options="category.id as category.name for category in ctrl.measurableCategories | orderBy:'name'"
+                                    ng-model="ctrl.selectedQuestionInfo.question.qualifierEntity.id">
+                            </select>
+                            <label for="qColumnCategoryId" style="margin-top: 0.5em">Column category</label>
+                            <select id="qColumnCategoryId"
+                                required
+                                class="form-control"
+                                ng-options="category.id as category.name for category in ctrl.measurableCategories | orderBy:'name'"
+                                    ng-model="ctrl.selectedQuestionInfo.question.qualifierEntity2.id">
+                            </select>
+                            <div class='small text-muted'>
+                                For each application, the matrix will show only the measurables in these two
+                                categories that already have a rating against that application.
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
 
                 <div class="form-group">

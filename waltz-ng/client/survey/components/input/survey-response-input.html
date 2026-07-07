@@ -162,6 +162,15 @@
         </waltz-svelte-component>
     </div>
 
+    <div ng-switch-when="MEASURABLE_MATRIX">
+        <waltz-svelte-component component="$ctrl.MeasurableMatrixSurveyComponent"
+                                question="$ctrl.question"
+                                instance-id="$ctrl.instanceId"
+                                current-response="$ctrl.response.jsonResponse"
+                                mode="'EDIT'">
+        </waltz-svelte-component>
+    </div>
+
     <!-- legal entity multi picker -->
     <waltz-bulk-legal-entity-selector ng-switch-when="LEGAL_ENTITY"
                                       item-id="$ctrl.question.id"

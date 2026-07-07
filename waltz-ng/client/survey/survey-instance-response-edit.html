@@ -83,6 +83,28 @@
                             <div ng-repeat="question in groupedQuestion.questions track by question.id"
                                  class="waltz-survey-question-edit-row row">
 
+                                <div class="col-md-12" ng-if="question.fieldType === ctrl.surveyCustomFieldTypes.MEASURABLE_MATRIX">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <waltz-survey-response-input response="ctrl.surveyResponses[question.id]"
+                                                                         question="question"
+                                                                         options="ctrl.dropdownEntriesByQuestionId[question.id]"
+                                                                         instance-id="ctrl.surveyDetails.instance.id"
+                                                                         save-comment="ctrl.saveComment"
+                                                                         save-string-response="ctrl.saveStringResponse"
+                                                                         save-number-response="ctrl.saveNumberResponse"
+                                                                         save-boolean-response="ctrl.saveBooleanResponse"
+                                                                         save-entity-response="ctrl.saveEntityResponse"
+                                                                         save-entity-list-response="ctrl.saveEntityListResponse"
+                                                                         save-list-response="ctrl.saveListResponse"
+                                                                         save-date-response="ctrl.saveDateResponse"
+                                                                         subject="ctrl.surveyDetails.subject"
+                                                                         survey-custom-field-types="ctrl.surveyCustomFieldTypes">
+                                            </waltz-survey-response-input>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="col-md-12" ng-if="!ctrl.surveyCustomFieldTypes[question.fieldType]">
                                     <!-- Label -->
                                     <div ng-attr-for="{{ question.id }}"

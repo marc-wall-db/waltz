@@ -43,4 +43,9 @@ public abstract class SurveyRunChangeCommand implements Command, NameProvider, D
     public abstract SurveyIssuanceKind issuanceKind();
     public abstract Optional<String> contactEmail();
     public abstract Set<Long> ownerInvKindIds();
+
+    @Value.Default
+    public SurveyInvolvementResolutionKind involvementResolutionKind() {
+        return SurveyInvolvementResolutionKind.TARGET_ENTITY;
+    }
 }
