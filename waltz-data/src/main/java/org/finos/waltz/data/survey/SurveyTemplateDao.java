@@ -64,6 +64,7 @@ public class SurveyTemplateDao {
                 .status(ReleaseLifecycleStatus.valueOf(record.getStatus()))
                 .externalId(Optional.ofNullable(record.getExternalId()))
                 .issuanceRole(record.getIssuanceRole())
+                .oneActiveInstancePerEntity(record.getOneActiveInstancePerEntity())
                 .build();
     };
 
@@ -78,6 +79,7 @@ public class SurveyTemplateDao {
         record.setStatus(template.status().name());
         record.setExternalId(template.externalId().orElse(null));
         record.setIssuanceRole(nullIfEmpty(template.issuanceRole()));
+        record.setOneActiveInstancePerEntity(template.oneActiveInstancePerEntity());
 
         return record;
     };
@@ -158,6 +160,7 @@ public class SurveyTemplateDao {
                 .set(SURVEY_TEMPLATE.EXTERNAL_ID, command.externalId().orElse(null))
                 .set(SURVEY_TEMPLATE.TARGET_ENTITY_KIND, command.targetEntityKind().name())
                 .set(SURVEY_TEMPLATE.ISSUANCE_ROLE, nullIfEmpty(command.issuanceRole()))
+                .set(SURVEY_TEMPLATE.ONE_ACTIVE_INSTANCE_PER_ENTITY, command.oneActiveInstancePerEntity())
                 .where(SURVEY_TEMPLATE.ID.eq(command.id().get()))
                 .execute();
     }

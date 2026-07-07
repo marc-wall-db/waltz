@@ -33,4 +33,9 @@ public abstract class SurveyTemplateChangeCommand implements Command, IdProvider
 
     @Nullable
     public abstract String issuanceRole();
+
+    @Value.Default
+    public boolean oneActiveInstancePerEntity() {
+        return false;
+    }
 }

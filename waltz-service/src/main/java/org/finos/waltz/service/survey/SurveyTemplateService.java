@@ -134,6 +134,7 @@ public class SurveyTemplateService {
                 .status(ReleaseLifecycleStatus.DRAFT)
                 .externalId(command.externalId())
                 .issuanceRole(command.issuanceRole())
+                .oneActiveInstancePerEntity(command.oneActiveInstancePerEntity())
                 .build());
 
         changeLogService.write(

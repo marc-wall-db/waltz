@@ -22,6 +22,7 @@ import org.finos.waltz.common.CollectionUtilities;
 import org.finos.waltz.common.SetUtilities;
 import org.finos.waltz.data.InlineSelectFieldFactory;
 import org.finos.waltz.model.EntityKind;
+import org.finos.waltz.model.EntityReference;
 import org.finos.waltz.model.Operation;
 import org.finos.waltz.model.ReleaseLifecycleStatus;
 import org.finos.waltz.model.Severity;
@@ -130,6 +131,15 @@ public class SurveyInstanceDao {
             SurveyInstanceStatus.NOT_STARTED,
             SurveyInstanceStatus.IN_PROGRESS,
             SurveyInstanceStatus.REJECTED);
+
+    /**
+     * Statuses considered "still active" for the one-active-instance-per-entity survey template
+     * restriction - i.e. not yet at a terminal outcome (APPROVED/REJECTED/WITHDRAWN).
+     */
+    public static final Set<SurveyInstanceStatus> ACTIVE_INSTANCE_STATUSES = SetUtilities.asSet(
+            SurveyInstanceStatus.NOT_STARTED,
+            SurveyInstanceStatus.IN_PROGRESS,
+            SurveyInstanceStatus.COMPLETED);
 
     private static final Set<SurveyInstanceStatus> UPDATABLE_OWNER_STATUSES = SetUtilities.asSet(
             SurveyInstanceStatus.NOT_STARTED,

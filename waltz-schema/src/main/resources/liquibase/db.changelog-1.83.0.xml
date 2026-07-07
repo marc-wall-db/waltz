@@ -68,4 +68,15 @@
         </addColumn>
         <comment>Second qualifier entity slot, for question field types needing two axes of configuration (e.g. MEASURABLE_MATRIX row/column measurable categories)</comment>
     </changeSet>
+
+    <changeSet id="20260710-survey-one-active-instance-1" author="claude">
+        <addColumn tableName="survey_template">
+            <column name="one_active_instance_per_entity"
+                    type="boolean"
+                    defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <comment>When set, only one active (NOT_STARTED/IN_PROGRESS/COMPLETED) instance of this template is allowed per target entity (and per qualifier entity, e.g. Product, where applicable)</comment>
+    </changeSet>
 </databaseChangeLog>

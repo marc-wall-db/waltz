@@ -39,6 +39,8 @@ import org.jooq.DSLContext;
 import org.jooq.Record1;
 import org.jooq.Select;
 import org.jooq.impl.DSL;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -62,6 +64,8 @@ import static org.finos.waltz.common.StringUtilities.capitalise;
 
 @Service
 public class SurveyRunService {
+
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(SurveyRunService.class);
 
     private final ChangeLogService changeLogService;
     private final InvolvementDao involvementDao;
@@ -509,9 +513,19 @@ public class SurveyRunService {
         // delete existing instances and recipients
         deleteSurveyInstancesAndRecipients(command.surveyRunId());
 
+        Set<SurveyInstance> candidatesWithActiveInstance = findCandidatesWithActiveInstance(surveyRun, instancesAndRecipientsToSave.keySet());
+
         // insert new instances and recipients
         instancesAndRecipientsToSave.forEach(
                 (k,v) -> {
+                    if (candidatesWithActiveInstance.contains(k)) {
+                        LOG.info(
+                                "Skipping survey instance creation for {} under survey run {} - an active instance of template {} already exists for this entity",
+                                k.surveyEntity(),
+                                surveyRun.id().orElse(null),
+                                surveyRun.surveyTemplateId());
+                        return;
+                    }
                     if (surveyRun.issuanceKind() == SurveyIssuanceKind.GROUP) {
                         // one instance per group
                         long instanceId = createSurveyInstance(k);
@@ -533,6 +547,50 @@ public class SurveyRunService {
         );
 
         return true;
+    }
+
+
+    /**
+     * EntityReference equality compares every field (name, externalId, description, ...), so a reference
+     * resolved via one path (e.g. a full entity lookup) and one resolved via another (e.g. read back off
+     * a survey_instance row, which only populates kind/id/name) will often fail .equals() despite denoting
+     * the same entity. Identity for this kind of matching should only ever be (kind, id).
+     */
+    private static String entityKey(EntityReference ref) {
+        return ref == null ? null : ref.kind().name() + ":" + ref.id();
+    }
+
+
+    /**
+     * When the survey template restricts instances to one-active-per-entity, returns the subset of the
+     * given candidate instances whose target entity already has an active (NOT_STARTED/IN_PROGRESS/
+     * COMPLETED) instance of this template - these should be skipped rather than issued a duplicate.
+     * <p>
+     * All candidates for a single bulk run share the same qualifier entity (e.g. the Product a cross-kind
+     * run was issued for, or none for a same-kind run), so the qualifier is only inspected once: when
+     * present, only existing instances issued under that same qualifier count as a clash; when absent,
+     * any existing active instance for the target entity counts, regardless of its qualifier.
+     */
+    private Set<SurveyInstance> findCandidatesWithActiveInstance(SurveyRun surveyRun, Set<SurveyInstance> candidates) {
+        SurveyTemplate template = surveyTemplateDao.getById(surveyRun.surveyTemplateId());
+
+        if (template == null || !template.oneActiveInstancePerEntity() || candidates.isEmpty()) {
+            return emptySet();
+        }
+
+        String runQualifierKey = entityKey(candidates.iterator().next().qualifierEntity());
+
+        Set<String> activeTargetKeys = surveyInstanceDao
+                .findForSurveyTemplate(surveyRun.surveyTemplateId(), SurveyInstanceDao.ACTIVE_INSTANCE_STATUSES.toArray(new SurveyInstanceStatus[0]))
+                .stream()
+                .filter(inst -> runQualifierKey == null || runQualifierKey.equals(entityKey(inst.qualifierEntity())))
+                .map(inst -> entityKey(inst.surveyEntity()))
+                .collect(Collectors.toSet());
+
+        return candidates
+                .stream()
+                .filter(k -> activeTargetKeys.contains(entityKey(k.surveyEntity())))
+                .collect(Collectors.toSet());
     }
 
 
@@ -649,6 +707,8 @@ public class SurveyRunService {
         EntityReference subjectRef = run.selectionOptions().entityReference();
         Set<Long> surveyOwnerList = asSet(run.ownerId());
 
+        checkNoActiveInstanceAlready(run, subjectRef);
+
         GenericSelector genericSelector = genericSelectorFactory.applyForKind(subjectRef.kind(), IdSelectionOptions.mkOpts(subjectRef, HierarchyQueryScope.EXACT));
 
         Set<Long> recipientPersonIdsFromKindIds = getPersonIdsFromInvKindIds(run.involvementKindIds(), subjectRef, genericSelector);
@@ -684,6 +744,37 @@ public class SurveyRunService {
                 return false;
         }
     }
+
+
+    /**
+     * Direct issuance targets a single entity, so - unlike the bulk path, which silently skips clashing
+     * entities - a clash here is a deliberate single action by the caller and should fail loudly rather
+     * than silently doing nothing. Direct issuance never sets a qualifier entity (target and selector are
+     * the same entity), so this only ever checks by target entity.
+     */
+    private void checkNoActiveInstanceAlready(SurveyRun run, EntityReference subjectRef) {
+        SurveyTemplate template = surveyTemplateDao.getById(run.surveyTemplateId());
+
+        if (template == null || !template.oneActiveInstancePerEntity()) {
+            return;
+        }
+
+        String subjectKey = entityKey(subjectRef);
+
+        boolean alreadyActive = surveyInstanceDao
+                .findForSurveyTemplate(run.surveyTemplateId(), SurveyInstanceDao.ACTIVE_INSTANCE_STATUSES.toArray(new SurveyInstanceStatus[0]))
+                .stream()
+                .anyMatch(inst -> subjectKey.equals(entityKey(inst.surveyEntity())));
+
+        checkTrue(
+                !alreadyActive,
+                format(
+                        "An active instance of survey template '%s' already exists for %s/%d - only one active instance per entity is allowed for this template",
+                        template.name(),
+                        subjectRef.kind(),
+                        subjectRef.id()));
+    }
+
 
     private Set<Long> getPersonIdsFromInvKindIds(Set<Long> involvementKindIds, EntityReference subjectRef, GenericSelector genericSelector) {
 

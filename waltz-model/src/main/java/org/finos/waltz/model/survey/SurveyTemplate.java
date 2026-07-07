@@ -53,4 +53,14 @@ public abstract class SurveyTemplate implements IdProvider, NameProvider, Descri
 
     @Nullable
     public abstract String issuanceRole();
+
+    /**
+     * When true, at most one active (NOT_STARTED/IN_PROGRESS/COMPLETED) instance of this template is
+     * allowed per target entity (and per qualifier entity, e.g. Product, where the instance was issued
+     * with one). Bulk runs skip entities that already have an active instance; direct issuance is rejected.
+     */
+    @Value.Default
+    public boolean oneActiveInstancePerEntity() {
+        return false;
+    }
 }
