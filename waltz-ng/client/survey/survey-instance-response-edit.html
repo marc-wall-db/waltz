@@ -43,7 +43,16 @@
 
     <div class="waltz-page-summary waltz-page-summary-attach">
         <div class="row">
-            <div class="col-md-8">
+            <div ng-class="{'col-md-8': ctrl.showDetailPanel, 'col-md-12': !ctrl.showDetailPanel}">
+
+                <div class="pull-right">
+                    <a href=""
+                       ng-click="ctrl.toggleDetailPanel()"
+                       title="{{ctrl.showDetailPanel ? 'Hide details panel' : 'Show details panel'}}">
+                        <waltz-icon name="{{ctrl.showDetailPanel ? 'angle-double-right' : 'angle-double-left'}}">
+                        </waltz-icon>
+                    </a>
+                </div>
 
                 <div class="alert alert-warning"
                      ng-if="ctrl.surveyDetails.instance.status === 'EXPIRED'">
@@ -226,7 +235,7 @@
                     </form>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4" ng-if="ctrl.showDetailPanel">
                 <waltz-svelte-component component="ctrl.SurveyViewerContextPanel"
                                         mode="ctrl.mode"
                                         instance-id="ctrl.entityReference.id">

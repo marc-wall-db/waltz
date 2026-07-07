@@ -37,7 +37,8 @@ const initialState = {
     dropdownEntriesByQuestionId: {},
     SurveyViewerContextPanel,
     mode: "EDIT",
-    surveyCustomFieldTypes
+    surveyCustomFieldTypes,
+    showDetailPanel: true
 };
 
 const submissionConfirmationPrompt = `The survey cannot be edited once submitted.
@@ -227,6 +228,8 @@ function controller($location,
     };
 
     vm.invokeStatusAction = actions.invokeStatusAction(serviceBroker, toasts, reload, $timeout, $state)
+
+    vm.toggleDetailPanel = () => vm.showDetailPanel = !vm.showDetailPanel;
 
     // --- BOOT
     reload();
