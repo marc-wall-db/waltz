@@ -122,14 +122,17 @@
             <tr>
                 <th colspan={rowDepth}
                     class="group-header corner-cell"
-                    style="top: {level * groupHeaderRowHeight}px; height: {groupHeaderRowHeight}px"></th>
+                    style="top: {level * groupHeaderRowHeight}px; height: {groupHeaderRowHeight}px;
+                           width: {rowHeaderTotalWidth}px; min-width: {rowHeaderTotalWidth}px; max-width: {rowHeaderTotalWidth}px"></th>
                 {#if hasLeadingSpacer}
                     <th class="spacer-cell" style="top: {level * groupHeaderRowHeight}px"></th>
                 {/if}
                 {#each colHeaderLevels[level] as group (group.id + ':' + group.startIndex)}
+                    {@const groupWidth = group.span * colWidth}
                     <th colspan={group.span}
                         class="group-header sticky-header"
-                        style="top: {level * groupHeaderRowHeight}px; height: {groupHeaderRowHeight}px">
+                        style="top: {level * groupHeaderRowHeight}px; height: {groupHeaderRowHeight}px;
+                               width: {groupWidth}px; min-width: {groupWidth}px; max-width: {groupWidth}px">
                         <slot name="col-group-header" {group}/>
                     </th>
                 {/each}
@@ -141,13 +144,15 @@
         <tr>
             <th colspan={rowDepth}
                 class="group-header corner-cell"
-                style="top: {leafRowTop}px; height: {leafHeaderHeight}px"></th>
+                style="top: {leafRowTop}px; height: {leafHeaderHeight}px;
+                       width: {rowHeaderTotalWidth}px; min-width: {rowHeaderTotalWidth}px; max-width: {rowHeaderTotalWidth}px"></th>
             {#if hasLeadingSpacer}
                 <th class="spacer-cell" style="top: {leafRowTop}px"></th>
             {/if}
             {#each visibleColumns as col (col.id)}
                 <th class="leaf-header sticky-header rotated-header"
-                    style="top: {leafRowTop}px; height: {leafHeaderHeight}px">
+                    style="top: {leafRowTop}px; height: {leafHeaderHeight}px;
+                           width: {colWidth}px; min-width: {colWidth}px; max-width: {colWidth}px">
                     <div class="rotated-content">
                         <slot name="leaf-col-header" {col}/>
                     </div>
@@ -166,12 +171,15 @@
                     {#if group}
                         <th rowspan={group.span}
                             class="group-header sticky-col"
-                            style="left: {level * rowHeaderColWidth}px">
+                            style="left: {level * rowHeaderColWidth}px;
+                                   width: {rowHeaderColWidth}px; min-width: {rowHeaderColWidth}px; max-width: {rowHeaderColWidth}px">
                             <slot name="row-group-header" {group}/>
                         </th>
                     {/if}
                 {/each}
-                <th class="leaf-header sticky-col" style="left: {leafColLeft}px">
+                <th class="leaf-header sticky-col"
+                    style="left: {leafColLeft}px;
+                           width: {rowHeaderColWidth}px; min-width: {rowHeaderColWidth}px; max-width: {rowHeaderColWidth}px">
                     <slot name="leaf-row-header" {row}/>
                 </th>
                 {#if hasLeadingSpacer}<td class="spacer-cell"></td>{/if}
@@ -195,16 +203,29 @@
 
     table.fixed-layout {
         table-layout: fixed;
-        border-collapse: collapse;
+        border-collapse: separate;
+        border-spacing: 0;
     }
 
     th, td {
         box-sizing: border-box;
         padding: 4px 6px;
-        border: 1px solid #ddd;
+        border-right: 1px solid #ddd;
+        border-bottom: 1px solid #ddd;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    /* border-collapse doesn't play well with position: sticky (collapsed borders get miscomputed at
+       sticky boundaries, causing sticky cells to bleed into their neighbour) - each cell draws its own
+       right/bottom edge instead, with the table's outer left/top edge added back here */
+    thead tr:first-child th {
+        border-top: 1px solid #ddd;
+    }
+
+    tr > :first-child {
+        border-left: 1px solid #ddd;
     }
 
     th.group-header, th.leaf-header {
@@ -226,6 +247,7 @@
     .spacer-cell {
         border-left: none;
         border-right: none;
+        border-top: none;
         background: transparent;
         padding: 0;
     }
