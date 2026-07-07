@@ -16,6 +16,7 @@
     import Markdown from "../../../../common/svelte/Markdown.svelte";
     import { surveyCustomFieldTypes } from "../../survey-custom-fields";
     import ARCSurveyComponent from "../arc-survey-components/ARCSurveyComponent.svelte";
+    import MeasurableMatrixSurveyComponent from "../measurable-matrix-components/MeasurableMatrixSurveyComponent.svelte";
 
     export let primaryEntityRef;
 
@@ -118,6 +119,11 @@
                                                 currentResponse={$responsesByQuestionId[question?.id]?.jsonResponse}
                                                 linkedEntityKind={$surveyDetails?.surveyInstance?.surveyEntity?.kind}
                                                 linkedEntityId={$surveyDetails?.surveyInstance?.surveyEntity?.id}/>
+                        {:else if question.fieldType === surveyCustomFieldTypes.MEASURABLE_MATRIX}
+                            <MeasurableMatrixSurveyComponent {question}
+                                                              instanceId={$surveyDetails?.surveyInstance?.id}
+                                                              currentResponse={$responsesByQuestionId[question?.id]?.jsonResponse}
+                                                              mode="VIEW"/>
                         {/if}
                     </div>
                 {/each}
