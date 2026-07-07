@@ -24,13 +24,15 @@
 
 ## Purpose
 
-- Enable a specific but generically useful pattern: issue one small, atomic survey per Application to
-  Product Architects (or any involvement-holder on a selector entity), asking them to break down where an
-  application is used across two independent measurable taxonomies (e.g. Capabilities x Locations) for a
-  given Product — without bloating a single survey with every application's breakdown, and without
-  requiring recipients to hold an involvement on each application individually.
+- Enable a specific but generically useful pattern: issue one small, atomic survey per Application to the
+  people involved with a selector entity (e.g. a Product, or any other Measurable used to group a
+  population of applications), asking them to break down where an application is used across two
+  independently-configured measurable categories for that selector entity — without bloating a single
+  survey with every application's breakdown, and without requiring recipients to hold an involvement on
+  each application individually.
 - The row/column axes are configured per-question against any two measurable categories at
-  template-authoring time (not hardcoded to "Capabilities"/"Locations"), keeping the feature generic.
+  template-authoring time - they are not hardcoded to any particular pair of categories, keeping the
+  feature generic and applicable to any taxonomy an organisation already models as measurables.
 
 ## User-visible behaviour
 
@@ -66,8 +68,8 @@
   cells are.
 - "Select all" / "deselect all" checkboxes are available at every level: on a leaf row/column header (all
   columns/rows for that one leaf) and on any merged ancestor header (all leaf rows/columns beneath that
-  ancestor, across the full opposite axis) - so a Product Architect can bulk-answer instead of clicking
-  every individual cell.
+  ancestor, across the full opposite axis) - so a recipient can bulk-answer instead of clicking every
+  individual cell.
 - Two modes: VIEW (read-only, shows previously checked cells with the same hierarchical headers) and EDIT
   (checkboxes/select-all toggles save immediately, matching the existing Measurable Multi-Select field's
   save-on-check behaviour).
@@ -118,25 +120,25 @@ record - no further joins are needed to interpret it:
   "responseType": "MEASURABLE_MATRIX",
   "selections": [
     {
-      "app": {"kind": "APPLICATION", "id": 1, "name": "sDDA"},
+      "app": {"kind": "APPLICATION", "id": 1, "name": "App 1"},
       "product": {
-        "kind": "MEASURABLE", "id": 2, "name": "Cash Management",
-        "hierarchy": [{"kind": "MEASURABLE", "id": 2, "name": "Cash Management"}]
+        "kind": "MEASURABLE", "id": 101, "name": "Product 1",
+        "hierarchy": [{"kind": "MEASURABLE", "id": 101, "name": "Product 1"}]
       },
       "row": {
-        "category": "Capability", "kind": "MEASURABLE", "id": 31, "name": "Payment Initiation",
+        "category": "Category A", "kind": "MEASURABLE", "id": 201, "name": "Category A - Item 1",
         "hierarchy": [
-          {"kind": "MEASURABLE", "id": 29, "name": "Transaction Lifecycle"},
-          {"kind": "MEASURABLE", "id": 10, "name": "Payments"},
-          {"kind": "MEASURABLE", "id": 31, "name": "Payment Initiation"}
+          {"kind": "MEASURABLE", "id": 210, "name": "Category A - Root"},
+          {"kind": "MEASURABLE", "id": 220, "name": "Category A - Group 1"},
+          {"kind": "MEASURABLE", "id": 201, "name": "Category A - Item 1"}
         ]
       },
       "column": {
-        "category": "Location", "kind": "MEASURABLE", "id": 25, "name": "DBAG London",
+        "category": "Category B", "kind": "MEASURABLE", "id": 301, "name": "Category B - Item 1",
         "hierarchy": [
-          {"kind": "MEASURABLE", "id": 20, "name": "EMEA - UK"},
-          {"kind": "MEASURABLE", "id": 24, "name": "United Kingdom"},
-          {"kind": "MEASURABLE", "id": 25, "name": "DBAG London"}
+          {"kind": "MEASURABLE", "id": 310, "name": "Category B - Root"},
+          {"kind": "MEASURABLE", "id": 320, "name": "Category B - Group 1"},
+          {"kind": "MEASURABLE", "id": 301, "name": "Category B - Item 1"}
         ]
       }
     }
