@@ -79,4 +79,15 @@
         </addColumn>
         <comment>When set, only one active (NOT_STARTED/IN_PROGRESS/COMPLETED) instance of this template is allowed per target entity (and per qualifier entity, e.g. Product, where applicable)</comment>
     </changeSet>
+
+    <changeSet id="20260711-survey-prefill-from-previous-1" author="claude">
+        <addColumn tableName="survey_run">
+            <column name="prefill_from_last_approved_instance"
+                    type="boolean"
+                    defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <comment>When set, a newly-generated instance with no saved responses yet is prefilled from the latest APPROVED instance of the same template with the same target entity (and qualifier entity, where applicable), for any questions still compatible with the current template</comment>
+    </changeSet>
 </databaseChangeLog>

@@ -48,4 +48,9 @@ public abstract class SurveyRunChangeCommand implements Command, NameProvider, D
     public SurveyInvolvementResolutionKind involvementResolutionKind() {
         return SurveyInvolvementResolutionKind.TARGET_ENTITY;
     }
+
+    @Value.Default
+    public boolean prefillFromLastApprovedInstance() {
+        return false;
+    }
 }

@@ -91,6 +91,7 @@ public class SurveyRunDao {
                 .involvementKindIds(fromCollection(recipients))
                 .ownerInvKindIds(fromCollection(owners))
                 .involvementResolutionKind(SurveyInvolvementResolutionKind.valueOf(record.getInvolvementResolutionKind()))
+                .prefillFromLastApprovedInstance(record.getPrefillFromLastApprovedInstance())
                 .build();
     }
 
@@ -157,6 +158,7 @@ public class SurveyRunDao {
         record.setStatus(SurveyRunStatus.DRAFT.name());
         record.setOwnerInvolvementGroupId(ownerInvGroupId.orElse(null));
         record.setInvolvementResolutionKind(command.involvementResolutionKind().name());
+        record.setPrefillFromLastApprovedInstance(command.prefillFromLastApprovedInstance());
 
         record.store();
         return record.getId();
@@ -188,6 +190,7 @@ public class SurveyRunDao {
                 .set(SURVEY_RUN.ISSUANCE_KIND, command.issuanceKind().name())
                 .set(SURVEY_RUN.CONTACT_EMAIL, command.contactEmail().orElse(null))
                 .set(SURVEY_RUN.INVOLVEMENT_RESOLUTION_KIND, command.involvementResolutionKind().name())
+                .set(SURVEY_RUN.PREFILL_FROM_LAST_APPROVED_INSTANCE, command.prefillFromLastApprovedInstance())
                 .where(SURVEY_RUN.ID.eq(surveyRunId))
                 .execute();
     }

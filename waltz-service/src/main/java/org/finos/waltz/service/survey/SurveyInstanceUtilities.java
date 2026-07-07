@@ -1,5 +1,6 @@
 package org.finos.waltz.service.survey;
 
+import org.finos.waltz.model.EntityReference;
 import org.finos.waltz.model.survey.SurveyQuestion;
 import org.finos.waltz.model.survey.SurveyQuestionResponse;
 
@@ -39,5 +40,16 @@ public class SurveyInstanceUtilities {
             default:
                 return Optional.empty();
         }
+    }
+
+
+    /**
+     * EntityReference equality compares every field (name, externalId, description, ...), so a reference
+     * resolved via one path and one resolved via another will often fail .equals() despite denoting the
+     * same entity. Identity for matching purposes (e.g. "is this the same target/qualifier entity as
+     * before?") should only ever be (kind, id).
+     */
+    public static String entityKey(EntityReference ref) {
+        return ref == null ? null : ref.kind().name() + ":" + ref.id();
     }
 }

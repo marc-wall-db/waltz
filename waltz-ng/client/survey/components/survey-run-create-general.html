@@ -349,6 +349,25 @@
             </div>
         </div>
 
+        <div class="form-group">
+            <label for="prefillFromLastApprovedInstance"
+                   class="col-sm-2 control-label">
+                Prefill from last approved submission
+            </label>
+            <div class="col-sm-10">
+                <input class="checkbox"
+                       type="checkbox"
+                       id="prefillFromLastApprovedInstance"
+                       ng-model="$ctrl.surveyRun.prefillFromLastApprovedInstance" />
+                <div class="small text-muted">
+                    When a recipient first opens an instance from this run and it has no saved answers yet,
+                    prefill it with the answers from their most recent <strong>approved</strong> submission of this
+                    same template for the same subject entity (and selector entity, if applicable). Only questions
+                    still compatible with the current template are carried over; anything else is left blank.
+                </div>
+            </div>
+        </div>
+
         <div class="form-group" style="padding-top: 10px">
             <div class="col-sm-offset-2 col-sm-10">
                 <button type="button"

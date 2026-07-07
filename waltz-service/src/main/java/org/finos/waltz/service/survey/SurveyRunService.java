@@ -551,17 +551,6 @@ public class SurveyRunService {
 
 
     /**
-     * EntityReference equality compares every field (name, externalId, description, ...), so a reference
-     * resolved via one path (e.g. a full entity lookup) and one resolved via another (e.g. read back off
-     * a survey_instance row, which only populates kind/id/name) will often fail .equals() despite denoting
-     * the same entity. Identity for this kind of matching should only ever be (kind, id).
-     */
-    private static String entityKey(EntityReference ref) {
-        return ref == null ? null : ref.kind().name() + ":" + ref.id();
-    }
-
-
-    /**
      * When the survey template restricts instances to one-active-per-entity, returns the subset of the
      * given candidate instances whose target entity already has an active (NOT_STARTED/IN_PROGRESS/
      * COMPLETED) instance of this template - these should be skipped rather than issued a duplicate.
@@ -578,18 +567,18 @@ public class SurveyRunService {
             return emptySet();
         }
 
-        String runQualifierKey = entityKey(candidates.iterator().next().qualifierEntity());
+        String runQualifierKey = SurveyInstanceUtilities.entityKey(candidates.iterator().next().qualifierEntity());
 
         Set<String> activeTargetKeys = surveyInstanceDao
                 .findForSurveyTemplate(surveyRun.surveyTemplateId(), SurveyInstanceDao.ACTIVE_INSTANCE_STATUSES.toArray(new SurveyInstanceStatus[0]))
                 .stream()
-                .filter(inst -> runQualifierKey == null || runQualifierKey.equals(entityKey(inst.qualifierEntity())))
-                .map(inst -> entityKey(inst.surveyEntity()))
+                .filter(inst -> runQualifierKey == null || runQualifierKey.equals(SurveyInstanceUtilities.entityKey(inst.qualifierEntity())))
+                .map(inst -> SurveyInstanceUtilities.entityKey(inst.surveyEntity()))
                 .collect(Collectors.toSet());
 
         return candidates
                 .stream()
-                .filter(k -> activeTargetKeys.contains(entityKey(k.surveyEntity())))
+                .filter(k -> activeTargetKeys.contains(SurveyInstanceUtilities.entityKey(k.surveyEntity())))
                 .collect(Collectors.toSet());
     }
 
@@ -759,12 +748,12 @@ public class SurveyRunService {
             return;
         }
 
-        String subjectKey = entityKey(subjectRef);
+        String subjectKey = SurveyInstanceUtilities.entityKey(subjectRef);
 
         boolean alreadyActive = surveyInstanceDao
                 .findForSurveyTemplate(run.surveyTemplateId(), SurveyInstanceDao.ACTIVE_INSTANCE_STATUSES.toArray(new SurveyInstanceStatus[0]))
                 .stream()
-                .anyMatch(inst -> subjectKey.equals(entityKey(inst.surveyEntity())));
+                .anyMatch(inst -> subjectKey.equals(SurveyInstanceUtilities.entityKey(inst.surveyEntity())));
 
         checkTrue(
                 !alreadyActive,

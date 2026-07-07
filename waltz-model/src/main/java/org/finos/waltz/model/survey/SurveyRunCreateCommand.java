@@ -50,4 +50,9 @@ public abstract class SurveyRunCreateCommand implements Command, NameProvider, D
         return SurveyInvolvementResolutionKind.TARGET_ENTITY;
     }
 
+    @Value.Default
+    public boolean prefillFromLastApprovedInstance() {
+        return false;
+    }
+
 }

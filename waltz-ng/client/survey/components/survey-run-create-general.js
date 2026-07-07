@@ -69,7 +69,8 @@ const initialState = {
         selectorEntity: null,
         dueDate: null,
         approvalDueDate: null,
-        involvementResolutionKind: "TARGET_ENTITY"
+        involvementResolutionKind: "TARGET_ENTITY",
+        prefillFromLastApprovedInstance: false
     },
     surveyInstance: {
         dueDate: null,

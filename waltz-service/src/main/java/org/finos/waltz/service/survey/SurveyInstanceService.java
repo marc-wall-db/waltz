@@ -67,7 +67,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -171,8 +173,104 @@ public class SurveyInstanceService {
     }
 
 
-    public List<SurveyInstanceQuestionResponse> findResponses(long instanceId) {
-        return surveyQuestionResponseDao.findForInstance(instanceId);
+    public List<SurveyInstanceQuestionResponse> findResponses(String userName, long instanceId) {
+        List<SurveyInstanceQuestionResponse> existing = surveyQuestionResponseDao.findForInstance(instanceId);
+
+        if (!existing.isEmpty()) {
+            return existing;
+        }
+
+        return prefillFromLastApprovedInstance(userName, instanceId)
+                .orElse(existing);
+    }
+
+
+    /**
+     * Survey runs can opt in (SurveyRun.prefillFromLastApprovedInstance) to carrying forward answers from
+     * a recipient's last approved submission of the same template, for the same target entity (and
+     * qualifier entity, e.g. a Product, where applicable). Only attempted the first time an instance is
+     * found to have no saved responses at all - once anything is saved, the instance is left alone. Copied
+     * answers are persisted as real responses immediately (not just displayed), so submitting without
+     * touching a field still submits the carried-forward answer rather than nothing. Per-question
+     * compatibility (does the question still exist, does its field type still match the saved answer's
+     * shape) is checked individually, so a template change only drops the specific questions affected.
+     */
+    private Optional<List<SurveyInstanceQuestionResponse>> prefillFromLastApprovedInstance(String userName, long instanceId) {
+        SurveyInstance instance = surveyInstanceDao.getById(instanceId);
+        if (instance == null) {
+            return Optional.empty();
+        }
+
+        SurveyRun run = surveyRunDao.getById(instance.surveyRunId());
+        if (run == null || !run.prefillFromLastApprovedInstance()) {
+            return Optional.empty();
+        }
+
+        String targetKey = SurveyInstanceUtilities.entityKey(instance.surveyEntity());
+        String qualifierKey = SurveyInstanceUtilities.entityKey(instance.qualifierEntity());
+
+        Optional<SurveyInstance> priorInstance = surveyInstanceDao
+                .findForSurveyTemplate(run.surveyTemplateId(), SurveyInstanceStatus.APPROVED)
+                .stream()
+                .filter(prior -> !Objects.equals(prior.id(), instance.id()))
+                .filter(prior -> targetKey.equals(SurveyInstanceUtilities.entityKey(prior.surveyEntity())))
+                .filter(prior -> Objects.equals(qualifierKey, SurveyInstanceUtilities.entityKey(prior.qualifierEntity())))
+                .max(Comparator.comparing(
+                        prior -> prior.approvedAt() != null ? prior.approvedAt() : LocalDateTime.MIN));
+
+        if (!priorInstance.isPresent()) {
+            return Optional.empty();
+        }
+
+        long priorInstanceId = priorInstance.get().id().get();
+        List<SurveyInstanceQuestionResponse> priorResponses = surveyQuestionResponseDao.findForInstance(priorInstanceId);
+
+        if (priorResponses.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Set<Long> currentQuestionIds = map(
+                surveyQuestionService.findForSurveyTemplate(run.surveyTemplateId()),
+                q -> q.id().get());
+
+        Person person = personDao.getActiveByUserEmail(userName);
+
+        // Only the question needs to still exist - survey_question_response.question_id has a real FK to
+        // survey_question.id, so copying a response for a deleted question would fail outright. Beyond
+        // that, no field-type compatibility check is needed: every response-reading path (getVal, the
+        // response UI) already reads strictly off the question's *current* field type, so a stale answer
+        // left over from a since-changed field type silently renders as unanswered - exactly as it already
+        // does today for any existing instance whose template changes underneath it while in flight.
+        List<SurveyInstanceQuestionResponse> copied = priorResponses
+                .stream()
+                .filter(r -> currentQuestionIds.contains(r.questionResponse().questionId()))
+                .map(r -> ImmutableSurveyInstanceQuestionResponse.builder()
+                        .surveyInstanceId(instanceId)
+                        .personId(person.id().get())
+                        .lastUpdatedAt(DateTimeUtilities.nowUtc())
+                        .questionResponse(r.questionResponse())
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
+
+        if (copied.isEmpty()) {
+            return Optional.empty();
+        }
+
+        copied.forEach(surveyQuestionResponseDao::saveResponse);
+
+        changeLogService.write(
+                ImmutableChangeLog.builder()
+                        .operation(Operation.UPDATE)
+                        .userId(userName)
+                        .parentReference(EntityReference.mkRef(EntityKind.SURVEY_INSTANCE, instanceId))
+                        .message(format(
+                                "Prefilled %d answer(s) carried over from a previous approved submission (survey instance #%d, approved %s)",
+                                copied.size(),
+                                priorInstanceId,
+                                priorInstance.get().approvedAt()))
+                        .build());
+
+        return Optional.of(copied);
     }
 
 

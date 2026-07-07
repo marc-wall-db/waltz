@@ -110,7 +110,7 @@ public class SurveyInstanceEndpoint implements Endpoint {
                 -> surveyInstanceService.findForRecipient(getId(req));
 
         ListRoute<SurveyInstanceQuestionResponse> findResponsesRoute =
-                (req, res) -> surveyInstanceService.findResponses(getId(req));
+                (req, res) -> surveyInstanceService.findResponses(getUsername(req), getId(req));
 
         ListRoute<Person> findRecipientsRoute =
                 (req, res) -> surveyInstanceService.findRecipients(getId(req));
