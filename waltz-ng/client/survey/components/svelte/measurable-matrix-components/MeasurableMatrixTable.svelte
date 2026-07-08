@@ -21,7 +21,9 @@
     import {REMOTE_API_STATUS} from "../../../../common/constants";
     import MeasurableMatrixEdit from "./MeasurableMatrixEdit.svelte";
     import MeasurableMatrixView from "./MeasurableMatrixView.svelte";
+    import EntityLink from "../../../../common/svelte/EntityLink.svelte";
     import {parseJSON} from "../arc-survey-components/arc-survey-utils";
+    import {mkQualifierContext} from "./measurable-matrix-utils";
 
     export let instanceId;
     export let question;
@@ -43,10 +45,26 @@
     $: matrixData = $matrixDataCall?.data;
 
     $: parsedCurrentResponse = currentResponse && parseJSON(currentResponse);
+
+    $: qualifierContext = mkQualifierContext(matrixData?.product, matrixData?.childProducts);
 </script>
 
 <br/>
 {#if isDataLoaded}
+    {#if qualifierContext}
+        <div class="matrix-qualifier-context">
+            This breakdown is being collected for <EntityLink ref={qualifierContext.product}/>
+            {#if qualifierContext.visibleChildren.length > 0}
+                , together with its descendant node(s):
+                {#each qualifierContext.visibleChildren as child, i (child.id)}
+                    <EntityLink ref={child}/>{i < qualifierContext.visibleChildren.length - 1 ? ", " : ""}
+                {/each}
+                {#if qualifierContext.remainingCount > 0}
+                    (and {qualifierContext.remainingCount} more)
+                {/if}
+            {/if}.
+        </div>
+    {/if}
     {#if mode === MODES.EDIT}
         <MeasurableMatrixEdit {matrixData}
                               {instanceId}
@@ -58,3 +76,13 @@
     {/if}
 {/if}
 <br/>
+
+<style>
+    .matrix-qualifier-context {
+        background-color: #f5f9fc;
+        border-left: 3px solid #6ba3d6;
+        padding: 8px 12px;
+        margin-bottom: 0.8em;
+        font-size: 0.95em;
+    }
+</style>

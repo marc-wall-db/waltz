@@ -118,6 +118,26 @@ export function extractCheckedKeys(currentResponse) {
 }
 
 
+/**
+ * Builds the display model for the "this breakdown is being collected for X, together with its
+ * descendant node(s) ..." note shown above the matrix grid. Returns null when there's no qualifying
+ * product to describe (e.g. the question wasn't issued in a qualifier-based survey run).
+ */
+export function mkQualifierContext(product, childProducts = [], maxVisible = 10) {
+    if (!product) {
+        return null;
+    }
+
+    const sortedChildren = _.sortBy(Array.from(childProducts ?? []), c => c.name);
+
+    return {
+        product,
+        visibleChildren: sortedChildren.slice(0, maxVisible),
+        remainingCount: Math.max(0, sortedChildren.length - maxVisible)
+    };
+}
+
+
 export function mkPayload({app, product, productHierarchy, rowCategoryName, columnCategoryName, rowsById, columnsById, checkedCells}) {
     const productWithHierarchy = product
         ? {...product, hierarchy: productHierarchy ?? []}
