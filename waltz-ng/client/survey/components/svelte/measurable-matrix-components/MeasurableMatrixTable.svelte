@@ -55,14 +55,14 @@
         <div class="matrix-qualifier-context">
             This breakdown is being collected for <EntityLink ref={qualifierContext.product}/>
             {#if qualifierContext.visibleChildren.length > 0}
-                , together with its descendant node(s):
+                , together with its underlaying node(s):
                 {#each qualifierContext.visibleChildren as child, i (child.id)}
                     <EntityLink ref={child}/>{i < qualifierContext.visibleChildren.length - 1 ? ", " : ""}
                 {/each}
                 {#if qualifierContext.remainingCount > 0}
                     (and {qualifierContext.remainingCount} more)
                 {/if}
-            {/if}.
+            {/if}
         </div>
     {/if}
     {#if mode === MODES.EDIT}
