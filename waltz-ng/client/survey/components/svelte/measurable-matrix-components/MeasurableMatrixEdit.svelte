@@ -66,8 +66,8 @@
         saving = true;
         const payload = mkPayload({
             app: matrixData?.app,
-            product: matrixData?.product,
-            productHierarchy: matrixData?.productHierarchy,
+            qualifierLeaves: matrixData?.qualifierLeaves,
+            qualifierCategoryName: matrixData?.qualifierCategory?.name,
             rowCategoryName,
             columnCategoryName,
             rowsById,

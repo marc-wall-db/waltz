@@ -21,6 +21,7 @@ package org.finos.waltz.service.survey;
 
 import org.finos.waltz.data.measurable.MeasurableDao;
 import org.finos.waltz.data.measurable.MeasurableIdSelectorFactory;
+import org.finos.waltz.data.measurable_category.MeasurableCategoryDao;
 import org.finos.waltz.data.measurable_rating.MeasurableRatingDao;
 import org.finos.waltz.data.measurable_rating.MeasurableRatingIdSelectorFactory;
 import org.finos.waltz.data.survey.SurveyInstanceDao;
@@ -33,6 +34,7 @@ import org.finos.waltz.model.ImmutableIdSelectionOptions;
 import org.finos.waltz.model.measurable.Measurable;
 import org.finos.waltz.model.measurable.MeasurableHierarchy;
 import org.finos.waltz.model.measurable.MeasurableHierarchyAlignment;
+import org.finos.waltz.model.measurable_category.MeasurableCategory;
 import org.finos.waltz.model.measurable_rating.MeasurableRating;
 import org.finos.waltz.model.survey.ImmutableMeasurableWithHierarchy;
 import org.finos.waltz.model.survey.ImmutableSurveyMeasurableMatrixData;
@@ -71,6 +73,7 @@ public class SurveyQuestionService {
     private final SurveyInstanceDao surveyInstanceDao;
     private final MeasurableRatingDao measurableRatingDao;
     private final MeasurableDao measurableDao;
+    private final MeasurableCategoryDao measurableCategoryDao;
 
     private final MeasurableRatingIdSelectorFactory measurableRatingIdSelectorFactory = new MeasurableRatingIdSelectorFactory();
     private final MeasurableIdSelectorFactory measurableIdSelectorFactory = new MeasurableIdSelectorFactory();
@@ -81,17 +84,20 @@ public class SurveyQuestionService {
                                  SurveyInstanceEvaluator evaluator,
                                  SurveyInstanceDao surveyInstanceDao,
                                  MeasurableRatingDao measurableRatingDao,
-                                 MeasurableDao measurableDao) {
+                                 MeasurableDao measurableDao,
+                                 MeasurableCategoryDao measurableCategoryDao) {
         checkNotNull(surveyQuestionDao, "surveyQuestionDao cannot be null");
         checkNotNull(surveyInstanceDao, "surveyInstanceDao cannot be null");
         checkNotNull(measurableRatingDao, "measurableRatingDao cannot be null");
         checkNotNull(measurableDao, "measurableDao cannot be null");
+        checkNotNull(measurableCategoryDao, "measurableCategoryDao cannot be null");
 
         this.surveyQuestionDao = surveyQuestionDao;
         this.evaluator = evaluator;
         this.surveyInstanceDao = surveyInstanceDao;
         this.measurableRatingDao = measurableRatingDao;
         this.measurableDao = measurableDao;
+        this.measurableCategoryDao = measurableCategoryDao;
     }
 
 
@@ -179,18 +185,35 @@ public class SurveyQuestionService {
                 ? productHierarchy.get(productHierarchy.size() - 1)
                 : qualifierRef;
 
-        Set<EntityReference> childProducts = product != null && product.kind() == EntityKind.MEASURABLE
-                ? findChildMeasurables(product)
+        Set<MeasurableWithHierarchy> qualifierLeaves = product != null && product.kind() == EntityKind.MEASURABLE
+                ? findQualifierLeaves(product)
                 : emptySet();
+
+        EntityReference qualifierCategory = product != null && product.kind() == EntityKind.MEASURABLE
+                ? resolveMeasurableCategory(product.id())
+                : null;
 
         return ImmutableSurveyMeasurableMatrixData.builder()
                 .app(instance.surveyEntity())
                 .rowMeasurables(rowMeasurables)
                 .columnMeasurables(columnMeasurables)
                 .product(product)
-                .productHierarchy(productHierarchy)
-                .childProducts(childProducts)
+                .qualifierLeaves(qualifierLeaves)
+                .qualifierCategory(qualifierCategory)
                 .build();
+    }
+
+
+    private EntityReference resolveMeasurableCategory(long measurableId) {
+        Measurable measurable = measurableDao.getById(measurableId);
+        if (measurable == null) {
+            return null;
+        }
+
+        MeasurableCategory category = measurableCategoryDao.getById(measurable.categoryId());
+        return category != null
+                ? category.entityReference()
+                : null;
     }
 
 
@@ -302,7 +325,18 @@ public class SurveyQuestionService {
     }
 
 
-    private Set<EntityReference> findChildMeasurables(EntityReference productRef) {
+    /**
+     * A survey may be issued against a non-leaf qualifying measurable (e.g. "Accounts", with leaf
+     * children "Cash Account"/"Cash Desk") - responses are always exploded to leaf level, so this finds
+     * the qualifying measurable's own leaf descendants (or itself, if it's already a leaf), each with its
+     * full root-to-self ancestor path attached (reusing the same helper used for row/column leaves).
+     */
+    private Set<MeasurableWithHierarchy> findQualifierLeaves(EntityReference productRef) {
+        Measurable product = measurableDao.getById(productRef.id());
+        if (product == null) {
+            return emptySet();
+        }
+
         IdSelectionOptions options = ImmutableIdSelectionOptions.builder()
                 .entityReference(productRef)
                 .scope(HierarchyQueryScope.CHILDREN)
@@ -311,9 +345,32 @@ public class SurveyQuestionService {
         Set<Measurable> descendants = measurableDao.findByMeasurableIdSelector(measurableIdSelectorFactory.apply(options))
                 .stream()
                 .filter(m -> m.id().map(id -> id != productRef.id()).orElse(true))
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
 
-        return map(descendants, m -> EntityReference.mkRef(EntityKind.MEASURABLE, m.id().get(), m.name()));
+        // the candidate set already contains the qualifying measurable's full subtree (or just itself,
+        // if it has no children), so leaf-ness can be determined without any further lookups
+        Set<Measurable> candidates = descendants.isEmpty()
+                ? singleton(product)
+                : descendants;
+
+        Set<Long> parentIds = candidates
+                .stream()
+                .map(Measurable::parentId)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
+
+        Set<Measurable> leaves = candidates
+                .stream()
+                .filter(m -> !parentIds.contains(m.id().get()))
+                .collect(Collectors.toSet());
+
+        Map<Long, MeasurableHierarchy> hierarchyByMeasurableId = measurableDao
+                .findHierarchyForCategory(product.categoryId())
+                .stream()
+                .collect(Collectors.toMap(MeasurableHierarchy::measurableId, Function.identity()));
+
+        return map(leaves, m -> mkMeasurableWithHierarchy(m, hierarchyByMeasurableId));
     }
 
 }

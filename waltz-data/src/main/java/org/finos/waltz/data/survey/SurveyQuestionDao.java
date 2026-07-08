@@ -19,8 +19,10 @@
 package org.finos.waltz.data.survey;
 
 import org.finos.waltz.common.StringUtilities;
+import org.finos.waltz.data.measurable_category.MeasurableCategoryDao;
 import org.finos.waltz.model.EntityKind;
 import org.finos.waltz.model.EntityReference;
+import org.finos.waltz.model.measurable_category.MeasurableCategory;
 import org.finos.waltz.model.survey.ImmutableSurveyQuestion;
 import org.finos.waltz.model.survey.SurveyQuestion;
 import org.finos.waltz.model.survey.SurveyQuestionFieldType;
@@ -35,9 +37,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+
+import static java.util.stream.Collectors.toMap;
 
 import static org.finos.waltz.common.Checks.checkNotNull;
 import static org.finos.waltz.common.Checks.checkTrue;
@@ -116,13 +121,44 @@ public class SurveyQuestionDao {
 
 
     private final DSLContext dsl;
+    private final MeasurableCategoryDao measurableCategoryDao;
 
 
     @Autowired
-    public SurveyQuestionDao(DSLContext dsl) {
+    public SurveyQuestionDao(DSLContext dsl, MeasurableCategoryDao measurableCategoryDao) {
         checkNotNull(dsl, "dsl cannot be null");
+        checkNotNull(measurableCategoryDao, "measurableCategoryDao cannot be null");
 
         this.dsl = dsl;
+        this.measurableCategoryDao = measurableCategoryDao;
+    }
+
+
+    /**
+     * `qualifierEntity`/`qualifierEntity2` are persisted as bare kind/id pairs (see TO_DOMAIN_MAPPER)
+     * with no name, since entity_qualifier_kind/id are generic columns with no denormalised name
+     * column. In practice this qualifier slot is always a MEASURABLE_CATEGORY (used to pick the row/
+     * column category for MEASURABLE_MULTI_SELECT/MEASURABLE_MATRIX questions), so their names can be
+     * resolved in one bulk lookup rather than per-question.
+     */
+    private List<SurveyQuestion> enrichQualifierNames(List<SurveyQuestion> questions) {
+        Map<Long, String> categoryNameById = measurableCategoryDao
+                .findAll()
+                .stream()
+                .collect(toMap(c -> c.id().get(), MeasurableCategory::name));
+
+        Function<Optional<EntityReference>, Optional<EntityReference>> resolve = maybeRef -> maybeRef
+                .map(ref -> ref.kind() == EntityKind.MEASURABLE_CATEGORY
+                        ? mkRef(ref.kind(), ref.id(), categoryNameById.getOrDefault(ref.id(), ref.name().orElse(null)))
+                        : ref);
+
+        return questions
+                .stream()
+                .map(q -> ImmutableSurveyQuestion
+                        .copyOf(q)
+                        .withQualifierEntity(resolve.apply(q.qualifierEntity()))
+                        .withQualifierEntity2(resolve.apply(q.qualifierEntity2())))
+                .collect(java.util.stream.Collectors.toList());
     }
 
 
@@ -197,20 +233,24 @@ public class SurveyQuestionDao {
 
 
     private List<SurveyQuestion> findForTemplateIdSelector(Select<Record1<Long>> templateIdSelector) {
-        return dsl
+        List<SurveyQuestion> questions = dsl
                 .select(SURVEY_QUESTION.fields())
                 .from(SURVEY_QUESTION)
                 .where(SURVEY_QUESTION.SURVEY_TEMPLATE_ID.in(templateIdSelector))
                 .orderBy(SURVEY_QUESTION.POSITION.asc(), SURVEY_QUESTION.QUESTION_TEXT)
                 .fetch(TO_DOMAIN_MAPPER);
+
+        return enrichQualifierNames(questions);
     }
 
 
     public Set<SurveyQuestion> findForIds(Set<Long> surveyQuestionsIds) {
-        return dsl
+        Set<SurveyQuestion> questions = dsl
                 .select(SURVEY_QUESTION.fields())
                 .from(SURVEY_QUESTION)
                 .where(SURVEY_QUESTION.ID.in(surveyQuestionsIds))
                 .fetchSet(TO_DOMAIN_MAPPER);
+
+        return new java.util.HashSet<>(enrichQualifierNames(new java.util.ArrayList<>(questions)));
     }
 }

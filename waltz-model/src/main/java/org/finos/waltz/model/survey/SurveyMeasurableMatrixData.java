@@ -31,9 +31,10 @@ import java.util.Set;
  * the row/column measurables (restricted to leaf descendants of measurables already rated against
  * the instance's subject entity, within the question's two qualifier categories - each carrying its
  * full ancestor path so hierarchical headers can be rendered), plus the survey instance's subject
- * (app), qualifier entity (e.g. the Product this instance was bulk-issued for, with its own ancestor
- * path) and its child measurables - included for future use (e.g. per-child-product exceptions), not
- * yet surfaced in the matrix UI.
+ * (app), qualifier entity (e.g. the Product this instance was bulk-issued for) and that entity's leaf
+ * descendants (or itself, if already a leaf) - each with its own full ancestor path. A saved response
+ * is exploded to one selection per qualifier leaf, since ratings/breakdowns are always meaningful at
+ * leaf level even when a survey is issued against a higher-level rollup node.
  */
 @Value.Immutable
 @JsonSerialize(as = ImmutableSurveyMeasurableMatrixData.class)
@@ -48,7 +49,8 @@ public interface SurveyMeasurableMatrixData {
     @Nullable
     EntityReference product();
 
-    List<EntityReference> productHierarchy();
+    Set<MeasurableWithHierarchy> qualifierLeaves();
 
-    Set<EntityReference> childProducts();
+    @Nullable
+    EntityReference qualifierCategory();
 }

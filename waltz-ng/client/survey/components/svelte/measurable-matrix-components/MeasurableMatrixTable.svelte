@@ -46,7 +46,7 @@
 
     $: parsedCurrentResponse = currentResponse && parseJSON(currentResponse);
 
-    $: qualifierContext = mkQualifierContext(matrixData?.product, matrixData?.childProducts);
+    $: qualifierContext = mkQualifierContext(matrixData?.product, matrixData?.qualifierLeaves);
 </script>
 
 <br/>

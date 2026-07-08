@@ -123,39 +123,68 @@ export function extractCheckedKeys(currentResponse) {
  * descendant node(s) ..." note shown above the matrix grid. Returns null when there's no qualifying
  * product to describe (e.g. the question wasn't issued in a qualifier-based survey run).
  */
-export function mkQualifierContext(product, childProducts = [], maxVisible = 10) {
+export function mkQualifierContext(product, qualifierLeaves = [], maxVisible = 10) {
     if (!product) {
         return null;
     }
 
-    const sortedChildren = _.sortBy(Array.from(childProducts ?? []), c => c.name);
+    const leafRefs = _
+        .chain(Array.from(qualifierLeaves ?? []))
+        .map(l => l.measurable)
+        .reject(m => m.id === product.id) // covers the already-a-leaf case, where the product is its own sole "leaf"
+        .sortBy(m => m.name)
+        .value();
 
     return {
         product,
-        visibleChildren: sortedChildren.slice(0, maxVisible),
-        remainingCount: Math.max(0, sortedChildren.length - maxVisible)
+        visibleChildren: leafRefs.slice(0, maxVisible),
+        remainingCount: Math.max(0, leafRefs.length - maxVisible)
     };
 }
 
 
-export function mkPayload({app, product, productHierarchy, rowCategoryName, columnCategoryName, rowsById, columnsById, checkedCells}) {
-    const productWithHierarchy = product
-        ? {...product, hierarchy: productHierarchy ?? []}
-        : null;
+/**
+ * Converts a root-first ancestor path (self last, the shape returned by the backend for
+ * row/column/qualifier-leaf hierarchies) into the self node augmented with its `level` (1 = root) and a
+ * recursive `parent` chain back to the root. The root node has no `parent` key at all. Every node in the
+ * chain (self and every ancestor) gets the same `measurableCategory` name attached, since a whole
+ * hierarchy branch always belongs to a single measurable category.
+ */
+export function mkNestedHierarchy(hierarchy = [], measurableCategory = null) {
+    if (_.isEmpty(hierarchy)) {
+        return null;
+    }
 
-    const selections = Array
-        .from(checkedCells)
-        .map(key => {
+    const build = idx => {
+        const level = idx + 1;
+        const node = {...hierarchy[idx], level, measurableCategory};
+        return idx > 0
+            ? {...node, parent: build(idx - 1)}
+            : node;
+    };
+
+    return build(hierarchy.length - 1);
+}
+
+
+export function mkPayload({app, qualifierLeaves, qualifierCategoryName, rowCategoryName, columnCategoryName, rowsById, columnsById, checkedCells}) {
+    const leaves = _.isEmpty(qualifierLeaves) ? [null] : Array.from(qualifierLeaves);
+
+    const selections = _
+        .chain(Array.from(checkedCells))
+        .flatMap(key => {
             const [rowId, colId] = key.split("-").map(Number);
             const row = rowsById[rowId];
             const column = columnsById[colId];
-            return {
-                app,
-                product: productWithHierarchy,
-                row: {category: rowCategoryName, id: row.id, name: row.name, kind: row.kind, hierarchy: row.hierarchy},
-                column: {category: columnCategoryName, id: column.id, name: column.name, kind: column.kind, hierarchy: column.hierarchy}
-            };
-        });
+
+            return leaves.map(leaf => ({
+                targetEntity: app,
+                qualifierEntity: leaf ? mkNestedHierarchy(leaf.hierarchy, qualifierCategoryName) : null,
+                row: {category: rowCategoryName, ...mkNestedHierarchy(row.hierarchy, rowCategoryName)},
+                column: {category: columnCategoryName, ...mkNestedHierarchy(column.hierarchy, columnCategoryName)}
+            }));
+        })
+        .value();
 
     return {
         responseType: "MEASURABLE_MATRIX",
