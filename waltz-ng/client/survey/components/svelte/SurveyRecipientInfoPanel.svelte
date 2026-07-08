@@ -24,7 +24,7 @@
     let columnDefs = [
         { field: "surveyInstance.surveyEntity.name", name: "Subject Name", width: "30%"},
         { field: "surveyInstance.surveyEntityExternalId", name: "Subject Ext Id"},
-        { field: "surveyInstance.qualifierEntity.name", name: "Qualifier"},
+        { field: "surveyInstance.qualifierEntity", name: "Qualifier", isEntityLink: true},
         { field: "displayStatus", name: "Status"},
         { field: "surveyInstance.dueDate", name: "Due Date"}
     ];

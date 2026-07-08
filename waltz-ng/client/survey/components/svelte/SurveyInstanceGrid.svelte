@@ -3,6 +3,7 @@
     import _ from "lodash";
     import {termSearch} from "../../../common";
     import Icon from "../../../common/svelte/Icon.svelte";
+    import EntityLink from "../../../common/svelte/EntityLink.svelte";
 
     export let columnDefs = [];
     export let rowData = [];
@@ -62,7 +63,15 @@
                     <tr class="clickable"
                         on:click={() => onSelectRow(row)}>
                     {#each columnDefs as col}
-                        <td>{_.get(row, col.field.split("."), "-") || "-"}</td>
+                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                        <td on:click={col.isEntityLink ? (e => e.stopPropagation()) : null}>
+                            {#if col.isEntityLink}
+                                <EntityLink ref={_.get(row, col.field.split("."))}/>
+                            {:else}
+                                {_.get(row, col.field.split("."), "-") || "-"}
+                            {/if}
+                        </td>
                     {/each}
                     </tr>
                 {/each}

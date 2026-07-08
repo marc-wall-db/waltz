@@ -32,7 +32,7 @@
     let columnDefs = [
         { field: "surveyInstance.surveyEntity.name", name: "Subject Name", width: "20%"},
         { field: "surveyInstance.surveyEntityExternalId", name: "Subject Ext Id"},
-        { field: "surveyInstance.qualifierEntity.name", name: "Qualifier", width: "15%"},
+        { field: "surveyInstance.qualifierEntity", name: "Qualifier", width: "15%", isEntityLink: true},
         { field: "displayStatus", name: "Status"},
         { field: "surveyInstance.submittedBy", name: "Submitter", width: "15%"},
         { field: "displaySubmittedAt", name: "Submitted"},
